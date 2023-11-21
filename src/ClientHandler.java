@@ -5,79 +5,91 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class ClientHandler implements Runnable{
-    public static ArrayList<ClientHandler> clientHandlers=new ArrayList<>();
+public class ClientHandler implements Runnable {
+    public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
     private Socket socket;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
-    private String  clientUsername;
+    private String clientUsername;
 
     public ClientHandler(Socket socket) {
         try {
             this.socket = socket;
-            // character streams ends with writer bytes stream ends with stream
-            this.bufferedWriter= new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            this.bufferedReader= new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.clientUsername=bufferedReader.readLine();
+            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.clientUsername = bufferedReader.readLine();
             clientHandlers.add(this);
-            broadcastMsg("Server"+clientUsername+"has entered the chat!");
 
+            broadcastMsg("Server: " + clientUsername + " has entered the chat!");
 
-        }catch (Exception e){
-            closeEverything(socket,bufferedReader,bufferedWriter);
+        } catch (Exception e) {
+            closeEverything();
             e.printStackTrace();
         }
     }
 
-    public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
+    public String getClientUsername() {
+        return clientUsername;
+    }
+
+    public void closeEverything() {
         removeClientHandler();
         try {
-            if(bufferedReader!=null){
+            if (bufferedReader != null) {
                 bufferedReader.close();
             }
-            if(bufferedWriter!=null){
+            if (bufferedWriter != null) {
                 bufferedWriter.close();
             }
-            if(socket!=null){
+            if (socket != null) {
                 socket.close();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private void broadcastMsg(String msgToSent) {
-        for(ClientHandler clientHandler:clientHandlers){
-            try{
-                if(!clientHandler.clientUsername.equals((clientUsername)));
-                clientHandler.bufferedWriter.write(msgToSent);
-                clientHandler.bufferedWriter.newLine();
-                clientHandler.bufferedWriter.flush();
-            } catch (Exception e){
-                closeEverything(socket,bufferedReader,bufferedWriter);
+        for (ClientHandler clientHandler : clientHandlers) {
+            try {
+                if (!clientHandler.clientUsername.equals(clientUsername)) {
+                    clientHandler.bufferedWriter.write(msgToSent);
+                    clientHandler.bufferedWriter.newLine();
+                    clientHandler.bufferedWriter.flush();
+                }
+            } catch (Exception e) {
+                closeEverything();
             }
         }
-
     }
-    public void removeClientHandler(){
+
+    public void removeClientHandler() {
         clientHandlers.remove(this);
-        System.out.println("Server"+clientUsername+"has left the chat!");
+        System.out.println("Server: " + clientUsername + " has left the chat!");
+    }
+
+    public void sendMsg(String msg) {
+        try {
+            bufferedWriter.write(msg);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+        } catch (Exception e) {
+            closeEverything();
+        }
     }
 
     @Override
     public void run() {
         String msgFromClient;
 
-        while(socket.isConnected()) {
+        while (socket.isConnected()) {
             try {
                 msgFromClient = bufferedReader.readLine();
                 broadcastMsg(msgFromClient);
             } catch (Exception e) {
-                closeEverything(socket,bufferedReader,bufferedWriter);
+                closeEverything();
                 break;
             }
         }
-
     }
-
 }
