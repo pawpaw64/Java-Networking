@@ -1,26 +1,25 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class ClientHandler implements Runnable {
     public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
     private Socket socket;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
-    private String clientUsername;
+    private String clientUsername ;
+    static int countClient =1;
+
 
     public ClientHandler(Socket socket) {
         try {
             this.socket = socket;
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.clientUsername = bufferedReader.readLine();
+            this.clientUsername = "Client "+countClient++;
             clientHandlers.add(this);
 
-            broadcastMsg("Server: " + clientUsername + " has entered the chat!");
 
         } catch (Exception e) {
             closeEverything();
@@ -48,18 +47,30 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
         }
     }
-
-    private void broadcastMsg(String msgToSent) {
+    private void broadcastMsg(String msgToSent, String senderUsername) {
         for (ClientHandler clientHandler : clientHandlers) {
             try {
-                if (!clientHandler.clientUsername.equals(clientUsername)) {
-                    clientHandler.bufferedWriter.write(msgToSent);
+                if (!clientHandler.clientUsername.equals(senderUsername)) {
+                    clientHandler.bufferedWriter.write(senderUsername + ": " + msgToSent);
                     clientHandler.bufferedWriter.newLine();
                     clientHandler.bufferedWriter.flush();
                 }
             } catch (Exception e) {
                 closeEverything();
             }
+        }
+
+        saveMessageToFile(senderUsername + ": " + msgToSent);
+    }
+
+
+    private void saveMessageToFile(String message) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(Server.MESSAGE_FILE, true))) {
+            writer.write(message);
+            writer.newLine();
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -85,7 +96,7 @@ public class ClientHandler implements Runnable {
         while (socket.isConnected()) {
             try {
                 msgFromClient = bufferedReader.readLine();
-                broadcastMsg(msgFromClient);
+                broadcastMsg(msgFromClient,clientUsername);
             } catch (Exception e) {
                 closeEverything();
                 break;

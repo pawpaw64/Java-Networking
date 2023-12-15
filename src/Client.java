@@ -1,8 +1,10 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.UUID;
 
 public class Client {
+    private static int count = 1;
     private Socket socket;
     private BufferedWriter bufferedWriter;
     private BufferedReader bufferedReader;
@@ -37,7 +39,9 @@ public class Client {
 
     public void sendMsg(String msg) {
         try {
-            bufferedWriter.write(username + ": " + msg);
+           bufferedWriter.write(username + msg);
+
+
             bufferedWriter.newLine();
             bufferedWriter.flush();
         } catch (Exception e) {
@@ -61,23 +65,20 @@ public class Client {
 
     public static void main(String[] args) throws IOException {
         Scanner sc = new Scanner(System.in);
-        System.out.println("Enter your username to connect to the group chat");
-        String username = sc.nextLine();
+        //String username = "Client "+count++;
+        int clientId = count++;
+        String username = "";
         Socket socket = new Socket("127.0.0.1", 8080);
         Client client = new Client(socket, username);
         client.listenForMsg();
 
-        // Bonus 2: Sending initial join message to server
-        client.sendMsg("has joined the chat!");
 
         while (true) {
             String message = sc.nextLine();
             if (message.equalsIgnoreCase("exit")) {
-                // Exit the chat
                 client.sendMsg("has left the chat!");
                 break;
             } else {
-                // Send messages to the server
                 client.sendMsg(message);
             }
         }
